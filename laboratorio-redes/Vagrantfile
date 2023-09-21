@@ -1,0 +1,53 @@
+Vagrant.configure("2") do |config|
+  # VM1 - Servidor Web
+  config.vm.define "vm1" do |vm1|
+    vm1.vm.box = "ubuntu/bionic64"
+    vm1.vm.network "private_network", type: "dhcp"
+    vm1.vm.synced_folder "./html", "/var/www/html"
+    vm1.vm.provider "virtualbox" do |vb|
+      vb.memory = "512"
+    end
+    vm1.vm.provision "shell", inline: <<-SHELL
+  # Defina o frontend do debconf para evitar erros dpkg-preconfigure
+  export DEBIAN_FRONTEND=noninteractive
+
+  # Instale o Apache
+  sudo apt-get update
+  sudo apt-get install -y apache2
+  sudo systemctl enable apache2
+  sudo systemctl start apache2
+    SHELL
+  end
+
+  # VM2 - Servidor de Banco de Dados
+  config.vm.define "vm2" do |vm2|
+    vm2.vm.box = "ubuntu/bionic64"
+    vm2.vm.network "private_network", type: "dhcp"
+    vm2.vm.provider "virtualbox" do |vb|
+      vb.memory = "512"
+    end
+    vm2.vm.provision "shell", inline: <<-SHELL
+      # Instale o MySQL ou PostgreSQL aqui
+      # Certifique-se de configurar a senha do banco de dados
+    SHELL
+  end
+
+  # VM3 - Gateway
+  config.vm.define "vm3" do |vm3|
+    vm3.vm.box = "ubuntu/bionic64"
+    vm3.vm.network "private_network", type: "dhcp"
+    vm3.vm.network "public_network", type: "dhcp"
+    vm3.vm.provider "virtualbox" do |vb|
+      vb.memory = "512"
+    end
+    vm3.vm.provision "shell", inline: <<-SHELL
+      # Configurar VM3 como gateway
+      # Habilitar IP forwarding
+      echo 1 | sudo tee /proc/sys/net/ipv4/ip_forward
+      # Configurar NAT para fornecer acesso à Internet
+      sudo iptables -t nat -A POSTROUTING -o eth1 -j MASQUERADE
+      # Atualizar e instalar software de roteamento, como o dnsmasq, se necessário
+    SHELL
+  end
+end
+
